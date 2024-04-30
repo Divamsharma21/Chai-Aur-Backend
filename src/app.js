@@ -14,11 +14,10 @@ app.use(express.static("public"))  // when we want to store the asserts or pdf o
 app.use(cookieParser()) // we use this for easily cookie parser for user data restore 
 
 // router import 
-
-import userRouter from './routes/user.routes.js'
+import userRouter from "./routes/user.routes.js";
 
 // router declareation
-app.use("/api/v2/user/register",userRouter)
+app.use("/api/v2/user/", userRouter);
 
 
 export  {app}
