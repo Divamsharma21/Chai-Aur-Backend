@@ -7,7 +7,7 @@ import {verifyJWT } from "../middleware/auth.middleware.js";
 const router=Router()
 
 router.route('/register').post( 
-// router.post("/register",registerUser)
+    // router.get("/register",registerUser)
  
 upload.fields([
     {
@@ -24,7 +24,7 @@ registerUser
 )
 
 // secured routes
-
+router.route("/login").post(loginUser)
 router.route("/logout").post(verifyJWT,logoutUser)
 router.route("/refresh-token").post(refreshAccessToken)
 
