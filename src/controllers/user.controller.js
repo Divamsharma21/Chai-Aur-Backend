@@ -8,7 +8,7 @@ import {uploadOnCloudinary} from "../utiles/Cloudinary.js"
 const registerUser=asyncHandler(async (req,res)=>{
     //     res.status(200).json({
     //     message:"chai aur code"
-    // })
+    // 
     // console.log(registerUser);
 
 
@@ -203,7 +203,7 @@ const refreshAccessToken = asyncHandler(async(req,res) =>{
        }
 })
 
-const changeCurrentpassward=asyncHandler(async(req,res)=>{
+const changeCurrentPassward=asyncHandler(async(req,res)=>{
   const {oldPassward,newPassward} =req.body
     const user=await User.findById(req.user?._id)
 
@@ -254,7 +254,7 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
 
      return res.status(200)
      .json(new ApiResponse(200,user,"Account details updated Successfully"))
-});
+})
 
 
 const updateUserAvatar=asyncHandler(async(req,res)=>{
@@ -319,6 +319,139 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
   )
 })
 
+const getUserChannelProfile= asyncHandler(async(req,res)=>{
+      const {username}=req.params
+      if(!username?.trim()){
+        throw new ApiError(400,"username is missing")
+      }
+
+      const channel =await User.aggregate([
+        {
+          $match:{
+            username:username?.toLowerCase()    
+             }
+        },
+
+        {
+          &lookup :{
+            from:"Subscriptions",
+            localField:"_id",
+            freignField:"channel",
+            as:"subscribers"
+          }
+        },
+
+        {
+          $lookup :{
+            from:"subscriptions",
+            localField:"_id",
+            freignField:"subscriber",
+            as:"subscribedTo"
+          }
+        },
+
+        {
+          $addFields:{
+            subscribersCount:{
+              $size:"$subscribed"
+            },
+            channelSubscribedToCount:{
+              $size: "$subscribedTo"
+            },
+            isSubscribed: {
+              $cond: {
+                  if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                  then: true,
+                  else: false
+              }
+          }
+          }
+        },
+        {
+          $project :{
+            fullName:1,
+            username:1,
+            subscribersCount:1,
+            channelSubscribedToCount:1,
+            isSubscribed:1,
+            avatar:1,
+            coverImage:1,
+            email:1
+          }
+        }
+      ])
+
+      if(!channel?.length){
+        throw new ApiError(404,"channel does not exits")
+
+      }
+
+      return  res
+      .status(200)
+      .json(
+        new ApiResponse(200,channel[0],"user channel fetched successfully")
+
+      )
+
+})
+
+
+const getWatchHistroy =asyncHandler(async(req,res)=>{
+  const user =await User.aggregate([
+    {
+      $match :{
+        _id:new mongoose.Types.objectId(req.user._id)
+      }
+    },
+    {
+      $lookup :{
+        from:"videos",
+        localField:"watchHistroy",
+        foreignField:"_id",
+        as:"watchHistroy",
+        pipeline :[
+          {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            fullName: 1,
+                            username: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields:{
+                owner:{
+                    $first: "$owner"
+                }
+            }
+        }
+        ]
+      }
+    }
+  ])
+
+  return res
+  .status(200)
+  .json(
+      new ApiResponse(
+          200,
+          user[0].watchHistory,
+          "Watch history fetched successfully"
+      )
+  )
+})
+
+ 
+    
 
      
 
@@ -327,10 +460,12 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
     loginUser,
     logoutUser,
     refreshAccessToken,
-    changeCurrentpassward,
+    changeCurrentPassward,
     updateAccountDetails,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 }
  
